@@ -25,6 +25,9 @@ var userSchema = new Schema({
         type:String,
         required:true
     },
+    googleId: { 
+        type: String 
+    },
     status: {
         type: Number,
         default: 1 //1->active, 0->inactive 

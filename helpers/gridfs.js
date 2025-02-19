@@ -3,7 +3,6 @@ const mongoose = require('mongoose');
 var uniqid = require("uniqid");
 const { PassThrough } = require('stream');
 const mime = require('mime-types');
-const { saveConfig, getConfig } = require('./config')
 
 module.exports.doUpload = async (image_file, folderName) => {
   try {

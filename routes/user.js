@@ -8,9 +8,10 @@ const ContestCntrl = require('../controllers/contest/contest.controller')
 const JoinContestCntrl = require('../controllers/contest/joinContest.controller')
 const WalletCntrl = require('../controllers/contest/wallet.controller')
 
-
 router.post('/register', AuthCntrl.register);
 router.post('/login', AuthCntrl.login);
+router.get("/google", AuthCntrl.googleLogin);
+router.get("/google/callback", AuthCntrl.googleCallback);
 router.get('/get-image', ContestCntrl.getImage);
 
 router.group(auth, function (router) {

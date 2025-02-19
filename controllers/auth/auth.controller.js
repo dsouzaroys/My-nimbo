@@ -1,6 +1,7 @@
 const mongoose= require('mongoose');
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcrypt");
+const passport = require("passport");
 const { body, sanitizeBody, validationResult } = require("express-validator");
 
 /** Import Helpers and middlewares */
@@ -41,7 +42,7 @@ module.exports.register = [
                 {$limit:1}
             ])
 
-            if(user_exist.length <= 0) {
+            if(user_exist.length ) {
                 return apiResponse.ErrorResponse(res,403, req.t('User Already Exist'));
             }
             
@@ -140,6 +141,30 @@ module.exports.login = [
         }
     }
 ]
+
+/** O Auth Login */
+module.exports.googleLogin = passport.authenticate("google", { scope: ["profile", "email"] });
+
+/** O Auth Callback */
+module.exports.googleCallback = [
+    passport.authenticate("google", { failureRedirect: "/login" }),
+    async (req, res) => {
+        try {
+            if (!req.user) {
+                return apiResponse.ErrorResponse(res, 401, req.t('Authentication Failed'));
+            }
+            const token = jwt.sign(
+                { id: req.user._id, googleId: req.user.googleId },
+                process.env.JWT_SECRET,
+                { expiresIn: "1h" }
+            );
+            res.redirect(`/dashboard?token=${token}`);
+        } catch (err) {
+            console.log(err);
+            return apiResponse.ErrorResponse(res, 500, req.t('INTERNAL SERVER ERROR'));
+        }
+    }
+];
 
 
 

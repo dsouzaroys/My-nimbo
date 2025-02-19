@@ -13,6 +13,7 @@ const i18next = require("i18next");
 const Backend = require("i18next-fs-backend");
 const middleware = require("i18next-http-middleware");
 const rateLimit = require('express-rate-limit');
+const passport = require("passport");
 
 const indexRouter = require("./routes/index");
 const apiResponse = require("./helpers/apiResponse");
@@ -61,6 +62,8 @@ if (process.env.NODE_ENV !== "test") {
 }
 
 app.use(cookieParser());
+app.use(passport.initialize());
+
 app.use(fileUpload({
     limits: { fileSize: 50 * 1024 * 1024 },
     abortOnLimit: true
