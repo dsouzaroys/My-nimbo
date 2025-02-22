@@ -41,7 +41,7 @@ module.exports.createContest = [
         try {
 
             var { thumbnail_image, contest_title, contest_description, contest_type, participation_details, terms_and_condition, contest_startDate, contest_endDate, submission_deadline, result_date, max_participants, entry_fee, total_winners, distribution_pattern, tax, discount, total_amount } = req.body;
-
+            distribution_pattern = JSON.parse(distribution_pattern)
             var balance = await checkForAmount(req.auth._id, total_amount)
             if (balance == false) {
                 return apiResponse.ErrorResponse(res, 400, req.t("Insufficient balance"));
@@ -80,7 +80,7 @@ module.exports.createContest = [
             var contest = await Contest.create(insert_data);
             if (contest) {
                 await Wallet.create(wallet_data)
-                return apiResponse.successResponseWithData(res, 200, req.t('Contest Created Successfully', result));
+                return apiResponse.successResponse(res, 200, req.t('Contest Created Successfully'));
             } else {
                 return apiResponse.ErrorResponse(res, 409, req.t('Contest Not Created'));
             }
