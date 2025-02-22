@@ -106,7 +106,7 @@ module.exports.listJoinedContest = [
 
         try {
 
-            var contestData = await JoinedContest.aggregate([
+            var aggregate = JoinedContest.aggregate([
                 {
                     $match: {
                         joined_by: mongoose.Types.ObjectId(req.auth._id),
@@ -122,7 +122,7 @@ module.exports.listJoinedContest = [
                     }
                 },
                 {
-                    $unwind: 'contestData'
+                    $unwind: '$contestData'
                 },
                 {
                     $project: {
@@ -151,12 +151,12 @@ module.exports.listJoinedContest = [
                     }
                 }
             ])
-            if (contestData.length == 0) {
-                return apiResponse.ErrorResponse(res, 409, req.t('Contest does not exist '));
-            }
-            else {
-                return apiResponse.successResponseWithData(res, 200, req.t('Joined contest'), contestData)
-            }
+            var contests = await JoinedContest.aggregatePaginate(aggregate, {
+                page: Number(req.query.page) || 1,
+                limit: Number(req.query.limit) || 10,
+                sort: { joined_Date: -1 }
+            });
+                return apiResponse.successResponseWithData(res, 200, req.t('Joined contest'), contests)
 
         } catch (err) {
             console.log(err)
@@ -166,53 +166,41 @@ module.exports.listJoinedContest = [
 ]
 
 /** Like and unlike */
-module.exports.likeAndShare = [
-    async (req, res) => {
+module.exports.likeAndShare = async (req, res) => {
+    try {
+        var { joined_contest_id, contest_likes, contest_share } = req.body;
+        let userId = mongoose.Types.ObjectId(req.auth._id);
+        let contestId = mongoose.Types.ObjectId(joined_contest_id);
 
-        try {
-
-            var { joined_contest_id, contest_likes, contest_share } = req.body;
-            if (contest_likes == true) {
-                var already_liked = ContestHistory.aggregate([
-                    {
-                        $match: {
-                            joined_contest_id: mongoose.Types.ObjectId(joined_contest_id),
-                            liked_by: mongoose.Types.ObjectId(req.auth._id)
-                        }
-                    }
-                ])
-                if (already_liked.length > 0) {
-                    await JoinedContest.updateOne({ _id: mongoose.Types.ObjectId(joined_contest_id) }, { $dec: { contest_likes: 1 } }, { new: true });
-                } else {
-                    await JoinedContest.updateOne({ _id: mongoose.Types.ObjectId(joined_contest_id) }, { $inc: { contest_likes: 1 } }, { new: true });
-                    await ContestHistory.create({ joined_contest_id: joined_contest_id, liked_by: req.auth._id });
-                }
+        if (contest_likes) {
+            let existingLike = await ContestHistory.findOne({ joined_contest_id: contestId, liked_by: userId });
+            if (existingLike) {
+                await JoinedContest.updateOne({ _id: contestId }, { $inc: { contest_likes: -1 } });
+                await ContestHistory.deleteOne({ _id: existingLike._id });
+            } else {
+                await JoinedContest.updateOne({ _id: contestId }, { $inc: { contest_likes: 1 } });
+                await ContestHistory.create({ joined_contest_id: contestId, liked_by: userId });
             }
-            else if (contest_share == true) {
-                var already_liked = ContestHistory.aggregate([
-                    {
-                        $match: {
-                            joined_contest_id: mongoose.Types.ObjectId(joined_contest_id),
-                            shared_by: mongoose.Types.ObjectId(req.auth._id)
-                        }
-                    }
-                ])
-                if (already_liked.length > 0) {
-                    await JoinedContest.updateOne({ _id: mongoose.Types.ObjectId(joined_contest_id) }, { $dec: { contest_share: 1 } }, { new: true });
-                } else {
-                    await JoinedContest.updateOne({ _id: mongoose.Types.ObjectId(joined_contest_id) }, { $inc: { contest_share: 1 } }, { new: true });
-                    await ContestHistory.create({ joined_contest_id: joined_contest_id, liked_by: req.auth._id });
-                }
-            }
-            return apiResponse.successResponse(res, 200, req.t('Contest Liked Successfully'));
-
-
-        } catch (err) {
-            console.log(err)
-            return apiResponse.ErrorResponse(res, 500, req.t('INTERNAL SERVER ERROR'));
         }
+
+        if (contest_share) {
+            let existingShare = await ContestHistory.findOne({ joined_contest_id: contestId, shared_by: userId });
+            if (existingShare) {
+                await JoinedContest.updateOne({ _id: contestId }, { $inc: { contest_share: -1 } });
+                await ContestHistory.deleteOne({ _id: existingShare._id });
+            } else {
+                await JoinedContest.updateOne({ _id: contestId }, { $inc: { contest_share: 1 } });
+                await ContestHistory.create({ joined_contest_id: contestId, shared_by: userId });
+            }
+        }
+
+        return apiResponse.successResponse(res, 200, req.t('Action performed successfully'));
+    } catch (err) {
+        console.error(err);
+        return apiResponse.ErrorResponse(res, 500, req.t('INTERNAL SERVER ERROR'));
     }
-]
+};
+
 
 
 

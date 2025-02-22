@@ -38,8 +38,12 @@ exports.checkForAmount = async (userId, amount)=> {
         },
         {
             $project: {
-                total_credit: {$first: "$total_credit.total_credit_amount"},
-                total_debit: {$first: "$total_debit.total_debit_amount"},
+                total_credit: { 
+                    $ifNull: [{ $arrayElemAt: ["$total_credit.total_credit_amount", 0] }, 0] 
+                },
+                total_debit: { 
+                    $ifNull: [{ $arrayElemAt: ["$total_debit.total_debit_amount", 0] }, 0] 
+                }
             }
         },
         {
