@@ -8,7 +8,7 @@ const { createpayment } = require("../../helpers/razorpay")
 /** Import Models */
 const Wallet = require("../../models/wallet.model");
 
-/** Join contest */
+/** add amount */
 module.exports.addAmont = [
     body("amount").isLength({ min: 1 }).trim().withMessage("Contest id must be specified."),
     body("transaction_id").isLength({ min: 1 }).trim().withMessage("Contest image must be specified."),
@@ -58,7 +58,7 @@ module.exports.addAmont = [
     }
 ]
 
-/** List joined contest  */
+/** List   */
 module.exports.list = [
     async (req, res) => {
 

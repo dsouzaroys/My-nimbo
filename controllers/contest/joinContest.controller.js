@@ -201,6 +201,69 @@ module.exports.likeAndShare = async (req, res) => {
     }
 };
 
+/** Leader board */
+module.exports.leaderBoard = [
+    async (req, res) => {
+
+        try {
+            var contestId = req.params.id;
+            var contestData = await Contest.findById(contestId, {distribution_pattern: 1})
+            var result = await JoinedContest.aggregate([
+                {
+                    $match: {
+                        contest_id: mongoose.Types.ObjectId(contestId)
+                    }
+                },
+                {
+                    $sort: {
+                        contest_likes: -1
+                    }
+                },
+                {
+                    $lookup: {
+                        from: "users",
+                        localField: "joined_by",
+                        foreignField: "_id",
+                        as: "joined_by",
+                        pipeline: [
+                            {
+                                $project: {
+                                    name: 1,
+                                    email: 1
+                                }
+                            }
+                        ]
+                    }
+                },
+                {
+                    $project: {
+                        joined_by: { $arrayElemAt: ["$joined_by.name", 0] },
+                        contest_likes: 1,
+                    }
+                }
+            ]);
+            let total_members = result.length;
+            // Assign prize amounts based on rank
+            result = result.map((member, index) => {
+                let prize = "0"; // Default prize is 0
+                let rank = index + 1;
+                
+                let prizeData = contestData.distribution_pattern.find(dp => parseInt(dp.rank) === rank);
+                if (prizeData) {
+                    prize = prizeData.prize_amount;
+                }
+                
+                return { ...member, price: prize };
+            });
+
+            return apiResponse.successResponseWithData(res, 200, req.t('Leader Board List'), { total_members, data: result });
+        } catch (err) {
+            console.log(err)
+            return apiResponse.ErrorResponse(res, 500, req.t('INTERNAL SERVER ERROR'));
+        }
+    }
+]
+
 
 
 

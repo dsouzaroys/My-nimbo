@@ -27,6 +27,7 @@ router.group(auth, function (router) {
     router.post("/", JoinContestCntrl.joinContest);
     router.get("/list", JoinContestCntrl.listJoinedContest);
     router.post("/like-share", JoinContestCntrl.likeAndShare);
+    router.get("/leaderboard/:id", JoinContestCntrl.leaderBoard);
   });
 
   router.group("/wallet", function (router) {
