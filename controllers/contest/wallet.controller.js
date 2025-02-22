@@ -101,6 +101,71 @@ module.exports.list = [
     }
 ]
 
+/** wallet balencce */
+module.exports.balance = [
+    async (req, res) => {
+
+        try {
+
+            var balance = await Wallet.aggregate([
+                {
+                    $match: {
+                        user_id: mongoose.Types.ObjectId(req.auth._id)
+                    }
+                },
+                {
+                    $facet: {
+                        total_credit: [
+                            {
+                                $match: { credit: true, payment_status: 1 }
+                            },
+                            {
+                                $group: {
+                                    _id: null,  // Group all matched documents together
+                                    total_credit_amount: { $sum: "$amount" }
+                                }
+                            }
+                        ],
+                        total_debit: [
+                            {
+                                $match: { debit: true, payment_status: 1 }
+                            },
+                            {
+                                $group: {
+                                    _id: null,
+                                    total_debit_amount: { $sum: "$amount" }
+                                }
+                            }
+                        ]
+                    }
+                },
+                {
+                    $project: {
+                        total_credit: {
+                            $ifNull: [{ $arrayElemAt: ["$total_credit.total_credit_amount", 0] }, 0]
+                        },
+                        total_debit: {
+                            $ifNull: [{ $arrayElemAt: ["$total_debit.total_debit_amount", 0] }, 0]
+                        }
+                    }
+                },
+                {
+                    $addFields: {
+                        remaning_balence: {
+                            $subtract: ["$total_credit", "$total_debit"]
+                        }
+                    }
+                }
+            ])
+            return apiResponse.successResponseWithData(res, 200, req.t('Balance'), balance);
+
+        } catch (err) {
+            console.log(err)
+            return apiResponse.ErrorResponse(res, 500, req.t('INTERNAL SERVER ERROR'));
+        }
+    }
+]
+
 
 
 

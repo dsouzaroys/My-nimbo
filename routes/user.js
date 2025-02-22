@@ -32,6 +32,8 @@ router.group(auth, function (router) {
   router.group("/wallet", function (router) {
     router.post("/add", WalletCntrl.addAmont);
     router.get("/list", WalletCntrl.list);
+    router.get("/balance", WalletCntrl.balance);
+
   });
 
 })
