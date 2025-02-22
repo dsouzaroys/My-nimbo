@@ -64,11 +64,24 @@ module.exports.list = [
 
         try {
 
-            console.log(req.auth._id)
+            var search_match = {};
+            if (req.query.deposit && String(req.query.deposit) == '1') {
+                search_match.$or = [
+                    { 'credit': true, payment_status:1 }
+                ];
+            }
+            else if (req.query.failed && String(req.query.failed) == '1') {
+                search_match.$or = [
+                    { 'credit': true, payment_status:0 }
+                ];
+            }
             var aggregate = Wallet.aggregate([
                 {
                     $match: {
                         user_id: mongoose.Types.ObjectId(req.auth._id),
+                        $and: [
+                            search_match
+                        ]
                     }
                 },
             ])
