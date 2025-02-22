@@ -21,7 +21,6 @@ module.exports.addAmont = [
 
         try {
 
-            console.log(req.auth)
             var { amount, transaction_id, credit_from, credit, reason } = req.body;
 
             var insert_data = {
@@ -32,10 +31,10 @@ module.exports.addAmont = [
                 reason: 'TOP-UP'
             }
 
-            const paymentData = await createpayment(amount);
-            const orderID = paymentData.id;
+            // const paymentData = await createpayment(amount);
+            // const orderID = paymentData.id;
 
-            insert_data.order_id = orderID;
+            // insert_data.order_id = orderID;
             var wallet = await Wallet.create(insert_data);
             const result = {
                 orderId: orderID,
@@ -43,6 +42,7 @@ module.exports.addAmont = [
                 RAZORPAY_KEY_ID: process.env.RAZORPAY_KEY_ID,
                 totalPrice: amount,
             }
+            console.log(result)
 
             if (wallet) {
                 return apiResponse.successResponseWithData(res, 200, req.t('Amount to wallet added Successfully', result));
@@ -64,19 +64,20 @@ module.exports.list = [
 
         try {
 
-            var walletdata = Wallet.aggregate([
+            console.log(req.auth._id)
+            var aggregate = Wallet.aggregate([
                 {
                     $match: {
-                        user_id: mongoose.Types.ObjectId(req.user._id),
+                        user_id: mongoose.Types.ObjectId(req.auth._id),
                     }
                 },
             ])
-            var result = await Wallet.aggregatePaginate(walletdata, {
-                page: Number(req.query.page) || 1,
-                limit: Number(req.query.limit) || 10,
-                sort: { updatedAt: -1 }
+            const result = await Wallet.aggregatePaginate(aggregate, {
+                page: req.query.page ? req.query.page : 1,
+                limit: 10,
+                sort: { updatedAt: -1 },
             });
-            return apiResponse.successResponseWithData(res, 200, req.t('Wallet Data', result));
+            return apiResponse.successResponseWithData(res, 200, req.t('Wallet Data'), result);
 
 
 

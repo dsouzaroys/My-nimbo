@@ -52,7 +52,7 @@ module.exports.joinContest = [
                 return apiResponse.ErrorResponse(res, 409, req.t('Contest does not exist or submission deadline is over'));
             }
 
-            var joinedContestData = await JoinedContest.findOne({ contest_id: contest_id, joined_by: req.user._id });
+            var joinedContestData = await JoinedContest.findOne({ contest_id: contest_id, joined_by: req.auth._id });
 
             if (joinedContestData) {
                 return apiResponse.ErrorResponse(res, 409, req.t('You have already joined this contest'));
@@ -103,7 +103,7 @@ module.exports.listJoinedContest = [
             var contestData = await JoinedContest.aggregate([
                 {
                     $match: {
-                        joined_by: mongoose.Types.ObjectId(req.user._id),
+                        joined_by: mongoose.Types.ObjectId(req.auth._id),
                     }
                 },
                 {
@@ -171,7 +171,7 @@ module.exports.likeAndShare = [
                     {
                         $match: {
                             joined_contest_id: mongoose.Types.ObjectId(joined_contest_id),
-                            liked_by: mongoose.Types.ObjectId(req.user._id)
+                            liked_by: mongoose.Types.ObjectId(req.auth._id)
                         }
                     }
                 ])
@@ -179,7 +179,7 @@ module.exports.likeAndShare = [
                     await JoinedContest.updateOne({ _id: mongoose.Types.ObjectId(joined_contest_id) }, { $dec: { contest_likes: 1 } }, { new: true });
                 } else {
                     await JoinedContest.updateOne({ _id: mongoose.Types.ObjectId(joined_contest_id) }, { $inc: { contest_likes: 1 } }, { new: true });
-                    await ContestHistory.create({ joined_contest_id: joined_contest_id, liked_by: req.user._id });
+                    await ContestHistory.create({ joined_contest_id: joined_contest_id, liked_by: req.auth._id });
                 }
             }
             else if (contest_share == true) {
@@ -187,7 +187,7 @@ module.exports.likeAndShare = [
                     {
                         $match: {
                             joined_contest_id: mongoose.Types.ObjectId(joined_contest_id),
-                            shared_by: mongoose.Types.ObjectId(req.user._id)
+                            shared_by: mongoose.Types.ObjectId(req.auth._id)
                         }
                     }
                 ])
@@ -195,7 +195,7 @@ module.exports.likeAndShare = [
                     await JoinedContest.updateOne({ _id: mongoose.Types.ObjectId(joined_contest_id) }, { $dec: { contest_share: 1 } }, { new: true });
                 } else {
                     await JoinedContest.updateOne({ _id: mongoose.Types.ObjectId(joined_contest_id) }, { $inc: { contest_share: 1 } }, { new: true });
-                    await ContestHistory.create({ joined_contest_id: joined_contest_id, liked_by: req.user._id });
+                    await ContestHistory.create({ joined_contest_id: joined_contest_id, liked_by: req.auth._id });
                 }
             }
             return apiResponse.successResponse(res, 200, req.t('Contest Liked Successfully'));
