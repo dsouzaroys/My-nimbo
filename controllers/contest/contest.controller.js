@@ -76,6 +76,7 @@ module.exports.createContest = [
                 user_id: req.auth._id,
                 amount: total_amount,
                 debit: true,
+                payment_status: 1,
                 reason: 'CREATE CONTEST'
             }
             var contest = await Contest.create(insert_data);
@@ -228,7 +229,7 @@ module.exports.myContest = [
                         discount: 1,
                         total_amount: 1,
                         order_id: 1,
-                        created_by: '$created_by.name',
+                        created_by: {$first: '$created_by.name'},
                         createdAt: 1,
                         updatedAt: 1
                     }

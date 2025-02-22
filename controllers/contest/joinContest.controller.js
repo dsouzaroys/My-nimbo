@@ -3,6 +3,7 @@ const { body, sanitizeBody, validationResult } = require("express-validator");
 
 /** Import Helpers and middlewares */
 const apiResponse = require("../../helpers/apiResponse");
+const { checkForAmount } = require('../../helpers/baseFunctions')
 
 /** Import Models */
 const JoinedContest = require("../../models/joinedContest.model");
@@ -14,7 +15,6 @@ const Wallet = require("../../models/wallet.model");
 /** Join contest */
 module.exports.joinContest = [
     body("contest_id").isLength({ min: 1 }).trim().withMessage("Contest id must be specified."),
-    body("contest_image").isLength({ min: 1 }).trim().withMessage("Contest image must be specified."),
     body("contest_title").isLength({ min: 1 }).trim().withMessage("Contest title must be specified."),
     body("contest_description").isLength({ min: 1 }).trim().withMessage("Contest description must be specified."),
     body("contest_type").isLength({ min: 1 }).withMessage("Contest type must be specified."),
@@ -33,6 +33,11 @@ module.exports.joinContest = [
         try {
 
             var { contest_id, contest_image, contest_title, contest_description, contest_type, joined_Date, entry_fee, tax, discount, total_amount } = req.body;
+
+            var balance = await checkForAmount(req.auth._id, total_amount)
+            if (balance == false) {
+                return apiResponse.ErrorResponse(res, 400, req.t("Insufficient balance"));
+            }
 
             today = new Date();
             var contestData = await Contest.aggregate([
@@ -75,13 +80,14 @@ module.exports.joinContest = [
                 user_id: req.auth._id,
                 amount: total_amount,
                 debit: true,
+                payment_status: 1,
                 reason: 'JOIN CONTEST'
             }
             var joinecdContest = await JoinedContest.create(insert_data);
 
             if (joinecdContest) {
                 await Wallet.create(wallet_data)
-                return apiResponse.successResponseWithData(res, 200, req.t('Contest joined Successfully', result));
+                return apiResponse.successResponse(res, 200, req.t('Contest joined Successfully'));
             } else {
                 return apiResponse.ErrorResponse(res, 409, req.t('Contest Not Created'));
             }
