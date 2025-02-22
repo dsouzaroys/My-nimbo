@@ -1,9 +1,9 @@
-const mongoose= require('mongoose');
+const mongoose = require('mongoose');
 const { body, sanitizeBody, validationResult } = require("express-validator");
 
 /** Import Helpers and middlewares */
 const apiResponse = require("../../helpers/apiResponse");
-const {createpayment} = require("../../helpers/razorpay")
+const { createpayment } = require("../../helpers/razorpay")
 
 /** Import Models */
 const Wallet = require("../../models/wallet.model");
@@ -12,8 +12,6 @@ const Wallet = require("../../models/wallet.model");
 module.exports.addAmont = [
     body("amount").isLength({ min: 1 }).trim().withMessage("Contest id must be specified."),
     body("transaction_id").isLength({ min: 1 }).trim().withMessage("Contest image must be specified."),
-    body("credit_from").isLength({ min: 1 }).trim().withMessage("Contest title must be specified."),
-    body("credit").isLength({ min: 1 }).trim().withMessage("Contest description must be specified."),
     async (req, res) => {
 
         const errors = validationResult(req);
@@ -21,12 +19,13 @@ module.exports.addAmont = [
             return apiResponse.validationErrorWithData(res, "Validation Error.", errors.array());
         }
 
-        try{
+        try {
 
+            console.log(req.auth)
             var { amount, transaction_id, credit_from, credit, reason } = req.body;
-            
+
             var insert_data = {
-                user_id: req.user._id,
+                user_id: req.auth._id,
                 amount,
                 transaction_id,
                 credit: true,
@@ -41,20 +40,20 @@ module.exports.addAmont = [
             const result = {
                 orderId: orderID,
                 bookingId: wallet._id,
-                RAZORPAY_KEY_ID : process.env.RAZORPAY_KEY_ID,
-                totalPrice: totalAdvanceAmount,
+                RAZORPAY_KEY_ID: process.env.RAZORPAY_KEY_ID,
+                totalPrice: amount,
             }
 
-            if(wallet) {
-                return apiResponse.successResponseWithData(res, 200,  req.t('Contest joined Successfully', result));
+            if (wallet) {
+                return apiResponse.successResponseWithData(res, 200, req.t('Amount to wallet added Successfully', result));
             } else {
-                return apiResponse.ErrorResponse(res,409, req.t('Contest Not Created'));
+                return apiResponse.ErrorResponse(res, 409, req.t('Unable to add amount'));
             }
 
 
-        }catch (err) {
+        } catch (err) {
             console.log(err)
-            return apiResponse.ErrorResponse(res,500, req.t('INTERNAL SERVER ERROR'));
+            return apiResponse.ErrorResponse(res, 500, req.t('INTERNAL SERVER ERROR'));
         }
     }
 ]
@@ -63,11 +62,11 @@ module.exports.addAmont = [
 module.exports.list = [
     async (req, res) => {
 
-        try{
+        try {
 
-            var walletdata =  Wallet.aggregate([
+            var walletdata = Wallet.aggregate([
                 {
-                    $match:{
+                    $match: {
                         user_id: mongoose.Types.ObjectId(req.user._id),
                     }
                 },
@@ -77,13 +76,13 @@ module.exports.list = [
                 limit: Number(req.query.limit) || 10,
                 sort: { updatedAt: -1 }
             });
-            return  apiResponse.successResponseWithData(res, 200, req.t('Wallet Data', result));
-            
+            return apiResponse.successResponseWithData(res, 200, req.t('Wallet Data', result));
 
 
-        }catch (err) {
+
+        } catch (err) {
             console.log(err)
-            return apiResponse.ErrorResponse(res,500, req.t('INTERNAL SERVER ERROR'));
+            return apiResponse.ErrorResponse(res, 500, req.t('INTERNAL SERVER ERROR'));
         }
     }
 ]

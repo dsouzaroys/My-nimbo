@@ -1,4 +1,4 @@
-const mongoose= require('mongoose');
+const mongoose = require('mongoose');
 const { body, sanitizeBody, validationResult } = require("express-validator");
 
 /** Import Helpers and middlewares */
@@ -30,36 +30,36 @@ module.exports.joinContest = [
             return apiResponse.validationErrorWithData(res, "Validation Error.", errors.array());
         }
 
-        try{
+        try {
 
             var { contest_id, contest_image, contest_title, contest_description, contest_type, joined_Date, entry_fee, tax, discount, total_amount } = req.body;
 
             today = new Date();
             var contestData = await Contest.aggregate([
                 {
-                    $match:{
+                    $match: {
                         _id: mongoose.Types.ObjectId(contest_id),
                         submission_deadline: { $gte: today }
                     }
                 },
                 {
-                    $project:{
+                    $project: {
                         _id: 1
                     }
                 }
             ])
-            if(contestData.length == 0) {
-                return apiResponse.ErrorResponse(res,409, req.t('Contest does not exist or submission deadline is over'));
+            if (contestData.length == 0) {
+                return apiResponse.ErrorResponse(res, 409, req.t('Contest does not exist or submission deadline is over'));
             }
 
             var joinedContestData = await JoinedContest.findOne({ contest_id: contest_id, joined_by: req.user._id });
 
-            if(joinedContestData) {
-                return apiResponse.ErrorResponse(res,409, req.t('You have already joined this contest'));
+            if (joinedContestData) {
+                return apiResponse.ErrorResponse(res, 409, req.t('You have already joined this contest'));
             }
-            
+
             var insert_data = {
-                joined_by: req.user._id,
+                joined_by: req.auth._id,
                 contest_id,
                 contest_image,
                 contest_title,
@@ -72,24 +72,24 @@ module.exports.joinContest = [
                 total_amount,
             }
             var wallet_data = {
-                user_id: req.user._id,
+                user_id: req.auth._id,
                 amount: total_amount,
                 debit: true,
                 reason: 'JOIN CONTEST'
             }
             var joinecdContest = await JoinedContest.create(insert_data);
 
-            if(joinecdContest) {
+            if (joinecdContest) {
                 await Wallet.create(wallet_data)
-                return apiResponse.successResponseWithData(res, 200,  req.t('Contest joined Successfully', result));
+                return apiResponse.successResponseWithData(res, 200, req.t('Contest joined Successfully', result));
             } else {
-                return apiResponse.ErrorResponse(res,409, req.t('Contest Not Created'));
+                return apiResponse.ErrorResponse(res, 409, req.t('Contest Not Created'));
             }
 
 
-        }catch (err) {
+        } catch (err) {
             console.log(err)
-            return apiResponse.ErrorResponse(res,500, req.t('INTERNAL SERVER ERROR'));
+            return apiResponse.ErrorResponse(res, 500, req.t('INTERNAL SERVER ERROR'));
         }
     }
 ]
@@ -98,16 +98,16 @@ module.exports.joinContest = [
 module.exports.listJoinedContest = [
     async (req, res) => {
 
-        try{
+        try {
 
             var contestData = await JoinedContest.aggregate([
                 {
-                    $match:{
+                    $match: {
                         joined_by: mongoose.Types.ObjectId(req.user._id),
                     }
                 },
                 {
-                    $lookup:{
+                    $lookup: {
                         from: 'contests',
                         localField: 'contest_id',
                         foreignField: '_id',
@@ -145,16 +145,16 @@ module.exports.listJoinedContest = [
                     }
                 }
             ])
-            if(contestData.length == 0) {
-                return apiResponse.ErrorResponse(res,409, req.t('Contest does not exist '));
+            if (contestData.length == 0) {
+                return apiResponse.ErrorResponse(res, 409, req.t('Contest does not exist '));
             }
-            else{
+            else {
                 return apiResponse.successResponseWithData(res, 200, req.t('Joined contest'), contestData)
             }
 
-        }catch (err) {
+        } catch (err) {
             console.log(err)
-            return apiResponse.ErrorResponse(res,500, req.t('INTERNAL SERVER ERROR'));
+            return apiResponse.ErrorResponse(res, 500, req.t('INTERNAL SERVER ERROR'));
         }
     }
 ]
@@ -163,47 +163,47 @@ module.exports.listJoinedContest = [
 module.exports.likeAndShare = [
     async (req, res) => {
 
-        try{
+        try {
 
             var { joined_contest_id, contest_likes, contest_share } = req.body;
-            if(contest_likes == true){
+            if (contest_likes == true) {
                 var already_liked = ContestHistory.aggregate([
                     {
-                        $match:{
+                        $match: {
                             joined_contest_id: mongoose.Types.ObjectId(joined_contest_id),
                             liked_by: mongoose.Types.ObjectId(req.user._id)
                         }
                     }
                 ])
-                if(already_liked.length > 0){
-                    await JoinedContest.updateOne({_id: mongoose.Types.ObjectId(joined_contest_id)},{$dec: {contest_likes: 1}},{new : true});
-                }else {
-                    await JoinedContest.updateOne({_id: mongoose.Types.ObjectId(joined_contest_id)},{$inc: {contest_likes: 1}},{new : true});
-                    await ContestHistory.create({joined_contest_id: joined_contest_id, liked_by: req.user._id});
+                if (already_liked.length > 0) {
+                    await JoinedContest.updateOne({ _id: mongoose.Types.ObjectId(joined_contest_id) }, { $dec: { contest_likes: 1 } }, { new: true });
+                } else {
+                    await JoinedContest.updateOne({ _id: mongoose.Types.ObjectId(joined_contest_id) }, { $inc: { contest_likes: 1 } }, { new: true });
+                    await ContestHistory.create({ joined_contest_id: joined_contest_id, liked_by: req.user._id });
                 }
             }
-            else if( contest_share == true){
+            else if (contest_share == true) {
                 var already_liked = ContestHistory.aggregate([
                     {
-                        $match:{
+                        $match: {
                             joined_contest_id: mongoose.Types.ObjectId(joined_contest_id),
                             shared_by: mongoose.Types.ObjectId(req.user._id)
                         }
                     }
                 ])
-                if(already_liked.length > 0){
-                    await JoinedContest.updateOne({_id: mongoose.Types.ObjectId(joined_contest_id)},{$dec: {contest_share: 1}},{new : true});
-                }else {
-                    await JoinedContest.updateOne({_id: mongoose.Types.ObjectId(joined_contest_id)},{$inc: {contest_share: 1}},{new : true});
-                    await ContestHistory.create({joined_contest_id: joined_contest_id, liked_by: req.user._id});
+                if (already_liked.length > 0) {
+                    await JoinedContest.updateOne({ _id: mongoose.Types.ObjectId(joined_contest_id) }, { $dec: { contest_share: 1 } }, { new: true });
+                } else {
+                    await JoinedContest.updateOne({ _id: mongoose.Types.ObjectId(joined_contest_id) }, { $inc: { contest_share: 1 } }, { new: true });
+                    await ContestHistory.create({ joined_contest_id: joined_contest_id, liked_by: req.user._id });
                 }
             }
-            return apiResponse.successResponse(res, 200,  req.t('Contest Liked Successfully'));
+            return apiResponse.successResponse(res, 200, req.t('Contest Liked Successfully'));
 
 
-        }catch (err) {
+        } catch (err) {
             console.log(err)
-            return apiResponse.ErrorResponse(res,500, req.t('INTERNAL SERVER ERROR'));
+            return apiResponse.ErrorResponse(res, 500, req.t('INTERNAL SERVER ERROR'));
         }
     }
 ]

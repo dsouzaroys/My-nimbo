@@ -50,7 +50,7 @@ exports.notFoundResponse = function(res, code = 404, msg) {
     return res.status(code).json(data);
 };
 
-exports.validationErrorWithData = function(res, code = 0, msg, data) {
+exports.validationErrorWithData = function(res, code = 400, msg, data) {
     var resData = {
         status: {
             code: code,

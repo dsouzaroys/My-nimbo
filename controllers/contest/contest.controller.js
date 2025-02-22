@@ -1,11 +1,11 @@
-const mongoose= require('mongoose');
+const mongoose = require('mongoose');
 const { body, sanitizeBody, validationResult } = require("express-validator");
 
 /** Import Helpers and middlewares */
 const apiResponse = require("../../helpers/apiResponse");
-const {createpayment} = require("../../helpers/razorpay");
-const {doUpload, getUpload, doDelete} = require('../../helpers/gridfs')
-const {checkForAmount} = require('../../helpers/baseFunctions')
+const { createpayment } = require("../../helpers/razorpay");
+const { doUpload, getUpload, doDelete } = require('../../helpers/gridfs')
+const { checkForAmount } = require('../../helpers/baseFunctions')
 
 /** Import Models */
 const Contest = require("../../models/contest.model");
@@ -30,7 +30,7 @@ module.exports.createContest = [
     body("tax").isLength({ min: 1 }).withMessage("Tax must be specified."),
     body("discount").isLength({ min: 1 }).withMessage("Discount must be specified."),
     body("total_amount").isLength({ min: 1 }).withMessage("Total amount must be specified."),
-    
+
     async (req, res) => {
 
         const errors = validationResult(req);
@@ -38,11 +38,11 @@ module.exports.createContest = [
             return apiResponse.validationErrorWithData(res, "Validation Error.", errors.array());
         }
 
-        try{
+        try {
 
-            var { thumbnail_image, contest_title, contest_description, contest_type, participation_details, terms_and_condition, contest_startDate, contest_endDate, submission_deadline, result_date, max_participants, entry_fee, total_winners, distribution_pattern, tax, discount, total_amount} = req.body;
+            var { thumbnail_image, contest_title, contest_description, contest_type, participation_details, terms_and_condition, contest_startDate, contest_endDate, submission_deadline, result_date, max_participants, entry_fee, total_winners, distribution_pattern, tax, discount, total_amount } = req.body;
 
-            var balance = await checkForAmount(req.user._id, total_amount) 
+            var balance = await checkForAmount(req.auth._id, total_amount)
             if (balance == false) {
                 return apiResponse.ErrorResponse(res, 400, req.t("Insufficient balance"));
             }
@@ -72,23 +72,23 @@ module.exports.createContest = [
                 total_amount
             }
             var wallet_data = {
-                user_id: req.user._id,
+                user_id: req.auth._id,
                 amount: total_amount,
                 debit: true,
                 reason: 'CREATE CONTEST'
             }
             var contest = await Contest.create(insert_data);
-            if(contest) {
+            if (contest) {
                 await Wallet.create(wallet_data)
-                return apiResponse.successResponseWithData(res, 200,  req.t('Contest Created Successfully', result));
+                return apiResponse.successResponseWithData(res, 200, req.t('Contest Created Successfully', result));
             } else {
-                return apiResponse.ErrorResponse(res,409, req.t('Contest Not Created'));
+                return apiResponse.ErrorResponse(res, 409, req.t('Contest Not Created'));
             }
 
 
-        }catch (err) {
+        } catch (err) {
             console.log(err)
-            return apiResponse.ErrorResponse(res,500, req.t('INTERNAL SERVER ERROR'));
+            return apiResponse.ErrorResponse(res, 500, req.t('INTERNAL SERVER ERROR'));
         }
     }
 ]
@@ -97,7 +97,7 @@ module.exports.createContest = [
 module.exports.getAllContest = [
     async (req, res) => {
 
-        try{
+        try {
 
             var aggregate = Contest.aggregate([
                 {
@@ -106,9 +106,9 @@ module.exports.getAllContest = [
                         localField: "created_by",
                         foreignField: "_id",
                         as: "created_by",
-                        pipeline:[
+                        pipeline: [
                             {
-                                $project:{
+                                $project: {
                                     name: 1,
                                     email: 1
                                 }
@@ -116,8 +116,8 @@ module.exports.getAllContest = [
                         ]
                     }
                 },
-                {           
-                    $project:{
+                {
+                    $project: {
                         contest_name: 1,
                         contest_description: 1,
                         contest_type: 1,
@@ -149,9 +149,9 @@ module.exports.getAllContest = [
             });
 
             return apiResponse.successResponseWithData(res, 200, req.t('Contest List'), contests);
-        }catch (err) {
+        } catch (err) {
             console.log(err)
-            return apiResponse.ErrorResponse(res,500, req.t('INTERNAL SERVER ERROR'));
+            return apiResponse.ErrorResponse(res, 500, req.t('INTERNAL SERVER ERROR'));
         }
     }
 ]
@@ -160,7 +160,7 @@ module.exports.getAllContest = [
 module.exports.getContestById = [
     async (req, res) => {
 
-        try{
+        try {
 
             var { id } = req.params;
 
@@ -173,9 +173,9 @@ module.exports.getContestById = [
             ])
             return apiResponse.successResponseWithData(res, 200, req.t('Contest Details'), contest);
 
-        }catch (err) {
+        } catch (err) {
             console.log(err)
-            return apiResponse.ErrorResponse(res,500, req.t('INTERNAL SERVER ERROR'));
+            return apiResponse.ErrorResponse(res, 500, req.t('INTERNAL SERVER ERROR'));
         }
     }
 ]
@@ -184,7 +184,7 @@ module.exports.getContestById = [
 module.exports.myContest = [
     async (req, res) => {
 
-        try{
+        try {
 
             var aggregate = Contest.aggregate([
                 {
@@ -198,9 +198,9 @@ module.exports.myContest = [
                         localField: "created_by",
                         foreignField: "_id",
                         as: "created_by",
-                        pipeline:[
+                        pipeline: [
                             {
-                                $project:{
+                                $project: {
                                     name: 1,
                                     email: 1
                                 }
@@ -208,8 +208,8 @@ module.exports.myContest = [
                         ]
                     }
                 },
-                {           
-                    $project:{
+                {
+                    $project: {
                         contest_name: 1,
                         contest_description: 1,
                         contest_type: 1,
@@ -241,9 +241,9 @@ module.exports.myContest = [
             });
 
             return apiResponse.successResponseWithData(res, 200, req.t('My Contest List'), contests);
-        }catch (err) {
+        } catch (err) {
             console.log(err)
-            return apiResponse.ErrorResponse(res,500, req.t('INTERNAL SERVER ERROR'));
+            return apiResponse.ErrorResponse(res, 500, req.t('INTERNAL SERVER ERROR'));
         }
     }
 ]
@@ -251,21 +251,21 @@ module.exports.myContest = [
 /** Update contest */
 module.exports.updateContest = [
     async (req, res) => {
-        try{
+        try {
             var contestId = req.params.id;
 
-            var { thumbnail_image, contest_title, contest_description, contest_type, participation_details, terms_and_condition, contest_startDate, contest_endDate, submission_deadline, result_date, max_participants, entry_fee, total_winners, distribution_pattern, tax, discount, total_amount} = req.body;
+            var { thumbnail_image, contest_title, contest_description, contest_type, participation_details, terms_and_condition, contest_startDate, contest_endDate, submission_deadline, result_date, max_participants, entry_fee, total_winners, distribution_pattern, tax, discount, total_amount } = req.body;
 
             var contestData = await Contest.findOne(contestId)
-            if(!contestData){
-                return apiResponse.ErrorResponse(res,404, req.t('CONTEST NOT FOUND'))
+            if (!contestData) {
+                return apiResponse.ErrorResponse(res, 404, req.t('CONTEST NOT FOUND'))
             }
-            oldImage = contestData.thumbnail_image ;
+            oldImage = contestData.thumbnail_image;
             if (req.files && req.files.thumbnail_image) {
                 thumbnail_image = await doUpload(req.files.thumbnail_image, 'thumbnail_image');
                 await doDelete(oldImage, req, res)
             }
-            
+
             var update_data = {
                 thumbnail_image,
                 contest_title,
@@ -288,9 +288,9 @@ module.exports.updateContest = [
             var contest = await Contest.findByIdAndUpdate(contestId, update_data, { new: true });
             return apiResponse.successResponse(res, 200, req.t('Contest Updated Successfully'));
 
-        }catch (err) {
+        } catch (err) {
             console.log(err)
-            return apiResponse.ErrorResponse(res,500, req.t('INTERNAL SERVER ERROR'));
+            return apiResponse.ErrorResponse(res, 500, req.t('INTERNAL SERVER ERROR'));
         }
     }
 ]
