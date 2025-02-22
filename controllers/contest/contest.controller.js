@@ -42,6 +42,7 @@ module.exports.createContest = [
 
             var { thumbnail_image, contest_title, contest_description, contest_type, participation_details, terms_and_condition, contest_startDate, contest_endDate, submission_deadline, result_date, max_participants, entry_fee, total_winners, distribution_pattern, tax, discount, total_amount } = req.body;
             distribution_pattern = JSON.parse(distribution_pattern)
+
             var balance = await checkForAmount(req.auth._id, total_amount)
             if (balance == false) {
                 return apiResponse.ErrorResponse(res, 400, req.t("Insufficient balance"));
@@ -135,7 +136,7 @@ module.exports.getAllContest = [
                         discount: 1,
                         total_amount: 1,
                         order_id: 1,
-                        created_by: '$created_by.name',
+                        created_by: {$fisrt:'$created_by.name'},
                         createdAt: 1,
                         updatedAt: 1
                     }
@@ -252,9 +253,10 @@ module.exports.myContest = [
 module.exports.updateContest = [
     async (req, res) => {
         try {
-            var contestId = req.params.id;
+            var contestId = mongoose.Types.ObjectId(req.params.id);
 
             var { thumbnail_image, contest_title, contest_description, contest_type, participation_details, terms_and_condition, contest_startDate, contest_endDate, submission_deadline, result_date, max_participants, entry_fee, total_winners, distribution_pattern, tax, discount, total_amount } = req.body;
+            distribution_pattern = JSON.parse(distribution_pattern)
 
             var contestData = await Contest.findOne(contestId)
             if (!contestData) {
