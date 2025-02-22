@@ -31,10 +31,10 @@ module.exports.addAmont = [
                 reason: 'TOP-UP'
             }
 
-            // const paymentData = await createpayment(amount);
-            // const orderID = paymentData.id;
+            const paymentData = await createpayment(amount);
+            const orderID = paymentData.id;
 
-            // insert_data.order_id = orderID;
+            insert_data.order_id = orderID;
             var wallet = await Wallet.create(insert_data);
             const result = {
                 orderId: orderID,
